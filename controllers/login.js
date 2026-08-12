@@ -13,9 +13,8 @@ router.post('/', async (req, res) => {
         }
     })
 
-    const passwordCorrect = body.password === 'secret'
-
-    if (!(user && passwordCorrect)) {
+    // for now, accepts any password
+    if (!user) {
         return res.status(401).json({
             error: 'invalid username or password'
         })
