@@ -1,34 +1,49 @@
 const router = require('express').Router()
 
 const { Blog, User, ReadingList } = require('../models')
-const { tokenExtractor } = require('../util/middleware')
+const { tokenExtractor, sessionCheck } = require('../util/middleware')
 
 // add a blog to the reading list for this user
 router.post('/', async (req, res, next) => {
     try {
+        // ensure blogId and userId are defined
         const { blogId, userId } = req.body
+        if (blogId === undefined) {
+            return res.status(400).json({ error: 'blogId is required' })
+        }
+        if (userId === undefined) {
+            return res.status(400).json({ error: 'userId is required' })
+        }
 
         // ensure both the blog and the user exist
         const blog = await Blog.findByPk(blogId)
         if (!blog) {
-            return res.status(400).json({ error: 'blogId does not refer to an existing blog' })
+            return res.status(404).json({ error: 'blogId does not refer to an existing blog' })
         }
-
         const user = await User.findByPk(userId)
         if (!user) {
-            return res.status(400).json({ error: 'userId does not refer to an existing user' })
+            return res.status(404).json({ error: 'userId does not refer to an existing user' })
         }
 
         // add the blog to the reading list for the given user
         const reading = await ReadingList.create({ blogId, userId })
-        res.json(reading)
+        res.status(201).json({
+            id: reading.id,
+            blog_id: reading.blogId,
+            user_id: reading.userId,
+            read: reading.read
+        })
     } catch (error) {
+        if (error.name === 'SequelizeUniqueConstraintError') {
+            return res.status(400).json({ error: 'this blog is already in the reading list' })
+        }
         next(error)
     }
 })
 
 // mark a blog in the reading list table as read (only if the logged-in user has this blog in its reading list)
-router.put('/:id', tokenExtractor, async (req, res, next) => {
+// requires valid token, active session and non-disabled user
+router.put('/:id', tokenExtractor, sessionCheck, async (req, res, next) => {
     try {
         const readinglistEntry = await ReadingList.findByPk(req.params.id)
 
@@ -47,6 +62,5 @@ router.put('/:id', tokenExtractor, async (req, res, next) => {
         next(error)
     }
 })
-
 
 module.exports = router

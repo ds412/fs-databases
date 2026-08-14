@@ -1,7 +1,7 @@
 const Blog = require('./blog')
 const User = require('./user')
 const ReadingList = require('./readinglist')
-
+const Session = require('./session')
 
 // user has a one-to-many relation to blog
 User.hasMany(Blog)
@@ -12,5 +12,5 @@ User.belongsToMany(Blog, { through: ReadingList, as: 'readings' })  // each user
 Blog.belongsToMany(User, { through: ReadingList, as: 'readers' })   // each blog has certain users as their readers
 
 module.exports = {
-    Blog, User, ReadingList
+    Blog, User, ReadingList, Session
 }
